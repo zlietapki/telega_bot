@@ -4,8 +4,11 @@ import (
 	"log"
 	"os"
 
+	"github.com/zlietapki/telega_bot/itnernal/app/commands"
+
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
+	"github.com/zlietapki/telega_bot/itnernal/service/product"
 )
 
 func main() {
@@ -28,16 +31,22 @@ func main() {
 
 	updates := bot.GetUpdatesChan(updateConfig)
 
+	productService := product.NewService()
+
+	commander := commands.NewCommander(bot, productService)
+
 	for update := range updates {
 		if update.Message == nil {
 			continue
 		}
 
-		log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
-
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Ты написал "+update.Message.Text)
-		// msg.ReplyToMessageID = update.Message.MessageID
-
-		bot.Send(msg)
+		switch update.Message.Command() {
+		case "help":
+			commander.Help(update.Message)
+		case "list":
+			commander.List(update.Message)
+		default:
+			commander.Default(update.Message)
+		}
 	}
 }
